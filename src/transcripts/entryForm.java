@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashSet;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -40,6 +41,11 @@ import sun.applet.resources.MsgAppletViewer;
  */
 public class entryForm extends javax.swing.JFrame {
 
+    Connection conn = null;
+    PreparedStatement pstm = null;
+    Statement stm = null;
+    ResultSet rs = null;
+
     /**
      * Creates new form entryForm
      */
@@ -47,6 +53,52 @@ public class entryForm extends javax.swing.JFrame {
         initComponents();
         initialComponents();
         setGrade();
+
+    }
+
+    private void checkForStudent_ID() {
+        int student_ID = Integer.parseInt((String) txtStudent_No.getText());
+
+        //Scanner sc = new Scanner(System.in);
+        try {
+            
+
+            //student_ID = sc.nextInt();
+            String getAll = "select * from students, marks where students.student_id = marks.student_id & "
+                    + "students.programme_id = marks.programme_id";
+            pstm = conn.prepareStatement(getAll);
+
+            pstm.setString(1, txtStudent_No.getText());
+
+            rs = pstm.executeQuery();
+
+            if (rs.next()) {
+                String student_no = rs.getString(1);
+                String name = rs.getString(3);
+                String middle_name = rs.getString(4);
+                String surname = rs.getString(5);
+                String date_of_birth = rs.getString(6);
+                String national_id_no = rs.getString(7);
+
+                // Populate the relevant text fields with the appropriate values from the database
+                txtName.setText(name);
+                txtMiddleName.setText(middle_name);
+                txtSurname.setText(surname);
+                txtStdNo.setText(student_no);
+                txtDOB.setText(date_of_birth);
+                txtIDNo.setText(national_id_no);
+
+            } else {
+                JOptionPane.showMessageDialog(null, "The Student Number entered does not exist!");
+
+            }
+
+        } catch (IllegalArgumentException e) {
+
+            e.getMessage();
+        } catch (SQLException ex) {
+            Logger.getLogger(entryForm.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
     }
 
@@ -267,10 +319,9 @@ public class entryForm extends javax.swing.JFrame {
     //That is the first value of each list of items
     public void Clear() {
         DefaultComboBoxModel cmbModel = new DefaultComboBoxModel();
-        
+
         try {
-            
-            
+
             txtName.setText("");
             txtStdNo.setText("");
 
@@ -286,49 +337,84 @@ public class entryForm extends javax.swing.JFrame {
             cmbQualification.setSelectedIndex(0);
             cmbCourseDescription.setSelectedIndex(0);
             cmbModuleCode.setModel(cmbModel);
-            cmbGrade.setSelectedIndex(0);
+            txtGrade.setText("");
             txtCredits.setText("");
             txtaTotal_Weighted_GP.setText("");
             txtaTotal_Credits.setText("");
-            
 
             DefaultTableModel model = (DefaultTableModel) this.tblModuleData.getModel();
             model.setNumRows(0);
 
-        } catch (IllegalStateException ie) {
+        } catch (IllegalStateException | IllegalArgumentException ie) {
             ie.getMessage();
-        } catch (IllegalArgumentException ia) {
-            ia.getMessage();
         }
 
     }
 
     public void setGrade() {
 
-        String[] grade = {"A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "E"};
-        DefaultComboBoxModel cmbGrades = new DefaultComboBoxModel(grade);
-        cmbGrade.setModel(cmbGrades);
+        try {
+            txtMark.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    final double mark = Double.parseDouble((String) txtMark.getText());
 
-        txtMark.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                final double mark = Double.parseDouble((String) txtMark.getText());
+                    if (mark >= 90.0) {
+                        txtGrade.setText("A+");
+                    } else if (mark >= 85 && mark <= 89.9) {
+                        txtGrade.setText("A");
+                    } else if (mark >= 80 && mark <= 84.9) {
+                        txtGrade.setText("A-");
 
-                if (mark >= 90.0) {
-                    cmbGrade.setSelectedIndex(0);
+                    } else if (mark >= 75 && mark <= 79.9) {
+                        txtGrade.setText("B+");
+
+                    } else if (mark >= 70 && mark <= 74.9) {
+                        txtGrade.setText("B");
+
+                    } else if (mark >= 65 && mark <= 69.9) {
+                        txtGrade.setText("B-");
+
+                    } else if (mark >= 60 && mark <= 64.9) {
+                        txtGrade.setText("C+");
+
+                    } else if (mark >= 55 && mark <= 59.9) {
+                        txtGrade.setText("C");
+
+                    } else if (mark >= 50 && mark <= 54.9) {
+                        txtGrade.setText("C-");
+
+                    } else if (mark >= 45 && mark <= 49.9) {
+                        txtGrade.setText("D+");
+
+                    } else if (mark >= 40 && mark <= 44.9) {
+                        txtGrade.setText("D");
+
+                    } else if (mark >= 35 && mark <= 39.9) {
+                        txtGrade.setText("D-");
+
+                    } else {
+                        txtGrade.setText("E");
+                    }
                 }
-            }
-        });
+            });
 
+        } catch (IllegalArgumentException ex) {
+
+            ex.getMessage();
+
+        }
     }
-    
-    /** This method adds module data to the table, including the calculated weighted grade point average
-     * It the saves the information captured to the database
+
+    /**
+     * This method adds module data to the table, including the calculated
+     * weighted grade point average It the saves the information captured to the
+     * database
      */
-    public void add(){
-        
-         int credits = Integer.parseInt((String) txtCredits.getText());
+    public void add() {
+
+        int credits = Integer.parseInt((String) txtCredits.getText());
         double mark = Double.parseDouble((String) txtMark.getText());
         double grade_point, weighted_gp = 0;
 
@@ -369,10 +455,9 @@ public class entryForm extends javax.swing.JFrame {
         }
 
         DefaultTableModel model = (DefaultTableModel) tblModuleData.getModel();
-        model.addRow(new Object[]{cmbModuleCode.getSelectedItem(), txtModuleDescription.getText(), txtCredits.getText(), txtMark.getText(), cmbGrade.getSelectedItem(), weighted_gp});
+        model.addRow(new Object[]{cmbModuleCode.getSelectedItem(), txtModuleDescription.getText(), txtCredits.getText(), txtMark.getText(), txtGrade.getText(), weighted_gp});
 
     }
-
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -395,7 +480,7 @@ public class entryForm extends javax.swing.JFrame {
         txtSurname = new javax.swing.JTextField();
         jLabel20 = new javax.swing.JLabel();
         jLabel21 = new javax.swing.JLabel();
-        dtpDOB = new org.jdesktop.swingx.JXDatePicker();
+        txtDOB = new javax.swing.JTextField();
         jpLevel = new javax.swing.JPanel();
         jLabel5 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
@@ -417,9 +502,9 @@ public class entryForm extends javax.swing.JFrame {
         cmbSemester = new javax.swing.JComboBox<>();
         txtModuleDescription = new javax.swing.JTextField();
         txtMark = new javax.swing.JTextField();
-        cmbGrade = new javax.swing.JComboBox<>();
         cmbModuleCode = new javax.swing.JComboBox<>();
         txtCredits = new javax.swing.JTextField();
+        txtGrade = new javax.swing.JTextField();
         jpResults = new javax.swing.JPanel();
         jLabel15 = new javax.swing.JLabel();
         jScrollPane2 = new javax.swing.JScrollPane();
@@ -484,7 +569,7 @@ public class entryForm extends javax.swing.JFrame {
                     .addComponent(txtIDNo)
                     .addComponent(txtStdNo)
                     .addComponent(txtName)
-                    .addComponent(dtpDOB, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(txtDOB))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jpStudentLayout.setVerticalGroup(
@@ -506,9 +591,9 @@ public class entryForm extends javax.swing.JFrame {
                     .addComponent(txtStdNo, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jpStudentLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(jpStudentLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(dtpDOB, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(txtDOB, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jpStudentLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(txtIDNo, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -603,14 +688,14 @@ public class entryForm extends javax.swing.JFrame {
 
         txtModuleDescription.setEditable(false);
 
-        cmbGrade.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "E" }));
-
         cmbModuleCode.setEditable(true);
         cmbModuleCode.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 cmbModuleCodeActionPerformed(evt);
             }
         });
+
+        txtGrade.setEditable(false);
 
         javax.swing.GroupLayout jpSemesterLayout = new javax.swing.GroupLayout(jpSemester);
         jpSemester.setLayout(jpSemesterLayout);
@@ -630,9 +715,9 @@ public class entryForm extends javax.swing.JFrame {
                     .addComponent(cmbSemester, 0, 342, Short.MAX_VALUE)
                     .addComponent(txtModuleDescription)
                     .addComponent(txtMark)
-                    .addComponent(cmbGrade, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(cmbModuleCode, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(txtCredits))
+                    .addComponent(txtCredits)
+                    .addComponent(txtGrade))
                 .addContainerGap())
         );
         jpSemesterLayout.setVerticalGroup(
@@ -661,7 +746,7 @@ public class entryForm extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jpSemesterLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel14)
-                    .addComponent(cmbGrade, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(txtGrade, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(15, Short.MAX_VALUE))
         );
 
@@ -803,6 +888,11 @@ public class entryForm extends javax.swing.JFrame {
 
         btnSearch.setFont(new java.awt.Font("Copperplate Gothic Bold", 0, 18)); // NOI18N
         btnSearch.setText("SEARCH");
+        btnSearch.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnSearchActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -920,7 +1010,7 @@ public class entryForm extends javax.swing.JFrame {
             }
 
             if (grade.toUpperCase().equals("A+") && mark >= 90) {
-                cmbGrade.setFocusable(rootPaneCheckingEnabled);
+
                 grade_point = 5.0;
 
             } else if (grade.toUpperCase().equals("A") && mark >= 85 && mark <= 89.9) {
@@ -1018,55 +1108,48 @@ public class entryForm extends javax.swing.JFrame {
         float sgpa;
         double mark;
         Date date_of_birth = null;
-        
-        date_of_birth = (Date) dtpDOB.getDate();
-        
-        
-        Connection conn;
-        Statement stm;
-        ResultSet rs;
-       
+
+        //date_of_birth = Date.valueOf((String) txtDOB.getText());
         try {
-           Class.forName("com.mysql.jdbc.Driver");
-           conn = (Connection) DriverManager.getConnection("jdbc:mysql://localhost:3306/academic_record", "root", "Biust");
-           stm = conn.createStatement();
-           //String insStudent = "insert into students values(?, programme_id, ?, ?, ?, ?, ?)";
-           String insModule = "insert into modules values(module_id, ?, ?, ?, ?)";
-           PreparedStatement pstm = conn.prepareStatement(insModule);
-           
-           Date date = Date.valueOf((String) dtpDOB.getDate().toString());
-          
-          
-           pstm.setString(1, cmbModuleCode.getSelectedItem().toString());
-           pstm.setString(2, txtModuleDescription.getText());
-           pstm.setString(3, txtAcademicYear.getText());
-           pstm.setString(4, txtCredits.getText());
-           
-           
-           //pstm.setString(1, txtStdNo.getText());
-           //pstm.setString(2, txtName.getText());
-           //pstm.setString(3, txtMiddleName.getText());
-           //pstm.setString(4, txtSurname.getText());
-           //pstm.setString(5, date;
-           //pstm.setString(6, txtIDNo.getText());
-           
-           pstm.execute();
-           
-           //close the mysql connection
-           conn.close();
-          
-           
-        } catch (ClassNotFoundException ex) {
+            Class.forName("com.mysql.jdbc.Driver");
+            conn = (Connection) DriverManager.getConnection("jdbc:mysql://localhost:3306/academic_record", "root", "Biust");
+            stm = conn.createStatement();
+            //String insStudent = "insert into students values(?, programme_id, ?, ?, ?, ?, ?)";
+            String insModule = "insert into modules values((module_id), ?, ?, ?, ?)";
+            pstm = conn.prepareStatement(insModule);
+
+            pstm.setString(1, cmbModuleCode.getSelectedItem().toString());
+            pstm.setString(2, txtModuleDescription.getText());
+            pstm.setString(3, txtAcademicYear.getText());
+            pstm.setString(4, txtCredits.getText());
+
+            //pstm.setString(1, txtStdNo.getText());
+            //pstm.setString(2, txtName.getText());
+            //pstm.setString(3, txtMiddleName.getText());
+            //pstm.setString(4, txtSurname.getText());
+            //pstm.setString(5, date;
+            //pstm.setString(6, txtIDNo.getText());
+            pstm.execute();
+            
+            JOptionPane.showMessageDialog(null, "Entry has been successsfully saved.");
+
+            //close the mysql connection
+            conn.close();
+
+        } catch (SQLException | ClassNotFoundException ex) {
             Logger.getLogger(entryForm.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            Logger.getLogger(entryForm.class.getName()).log(Level.SEVERE, null, ex);
-        } 
+        }
     }//GEN-LAST:event_btnSaveActionPerformed
+
+    private void btnSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSearchActionPerformed
+        // TODO add your handling code here:
+        checkForStudent_ID();
+
+    }//GEN-LAST:event_btnSearchActionPerformed
 
     private void cmbModuleCodeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmbModuleCodeActionPerformed
         // TODO add your handling code here:
         //initialComponents();
-
     }//GEN-LAST:event_cmbModuleCodeActionPerformed
 
     /**
@@ -1117,12 +1200,10 @@ public class entryForm extends javax.swing.JFrame {
     private javax.swing.JButton btnUpdate;
     private javax.swing.JComboBox<String> cmbContinuity_Results;
     private javax.swing.JComboBox<String> cmbCourseDescription;
-    private javax.swing.JComboBox<String> cmbGrade;
     private javax.swing.JComboBox<String> cmbLevel;
     private javax.swing.JComboBox<String> cmbModuleCode;
     private javax.swing.JComboBox<String> cmbQualification;
     private javax.swing.JComboBox<String> cmbSemester;
-    private org.jdesktop.swingx.JXDatePicker dtpDOB;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
@@ -1156,6 +1237,8 @@ public class entryForm extends javax.swing.JFrame {
     private javax.swing.JTable tblModuleData;
     private javax.swing.JTextField txtAcademicYear;
     private javax.swing.JTextField txtCredits;
+    private javax.swing.JTextField txtDOB;
+    private javax.swing.JTextField txtGrade;
     private javax.swing.JTextField txtIDNo;
     private javax.swing.JTextField txtMark;
     private javax.swing.JTextField txtMiddleName;
